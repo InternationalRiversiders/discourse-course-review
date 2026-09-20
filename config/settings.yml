@@ -1,0 +1,13 @@
+plugins:
+  courses_enabled:
+    default: false
+    client: true
+  courses_allowed_groups:
+    default: ""
+    type: group_list
+  courses_admin_groups:
+    default: ""
+    type: group_list
+  courses_read_only:
+    default: false
+    client: true

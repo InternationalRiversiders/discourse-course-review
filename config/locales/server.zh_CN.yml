@@ -1,0 +1,6 @@
+zh_CN:
+  site_settings:
+    courses_enabled: "启用选课指南"
+    courses_allowed_groups: "允许使用选课指南的用户组（管理员始终可用）"
+    courses_admin_groups: "允许管理选课指南的用户组"
+    courses_read_only: "课程只读模式：禁止发布、修改、互动和通知补发"
