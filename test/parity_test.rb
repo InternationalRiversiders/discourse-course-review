@@ -122,6 +122,9 @@ class CourseParityTest < Minitest::Test
   def test_report_admin_can_see_and_moderate_target
     r=review
     command(@bob,'report',kind:'Review',id:r.id,reason:'请核实内容')
+    command(@bob,'report',kind:'Review',id:r.id,reason:'补充核实理由')
+    assert_equal 1,A::Report.count
+    assert_equal '补充核实理由',A::Report.first.reason
     cards=state({view:'admin',part:'reports'},as:@admin)[:cards]
     assert_equal r.body,cards.first[:body]
     assert_equal 'moderate',cards.first[:forms].first[:operation]

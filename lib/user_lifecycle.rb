@@ -74,9 +74,14 @@ module DiscourseCourseReview
         return query.merge(view:view)
       end
       return {view:'mine'} if path=='me'
-      return {view:'admin'} if path=='admin'
+      if path=='admin'
+        query={view:'admin',part:params['tab']=='reports' ? 'reports' : 'reviews'}
+        query[:kind]='Mentor' if params['tab']=='mentors'
+        query[:page]=params['page'] if params['page'].present?
+        return query
+      end
       kind,key=path.split('/',2)
-      return {view:'teachers'} if kind=='teachers' && key.blank?
+      return {view:'teachers',q:params['q'].to_s} if kind=='teachers' && key.blank?
       case kind
       when 'courses'
         id=Legacy.find_by(source:'Course',legacy_id:key)&.target_id

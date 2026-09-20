@@ -124,7 +124,8 @@ module DiscourseCourseReview
       {}
     end
     def self.report(user, item, reason)
-      Report.create_or_find_by!(user_id: user.id, target_kind: item.class.name.demodulize, target_id: item.id) { |r| r.reason = text(reason, 240) }
+      report=Report.find_or_initialize_by(user_id: user.id, target_kind: item.class.name.demodulize, target_id: item.id)
+      report.update!(reason:text(reason,240))
       {}
     end
     def self.comments(kind, id, user)
