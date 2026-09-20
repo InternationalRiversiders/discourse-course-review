@@ -2,7 +2,7 @@
 
 Rails / PostgreSQL 后端与原生 Glimmer 页面，入口 `/courses`。日常运行无需旧 Next.js 服务。课程与导师保留独立目录、评分和讨论；评价不转换成普通论坛帖子。
 
-当前阶段：已完成本轮旧版差异补齐与真实数据隔离导入，已在私有测试入口部署并通过本轮验收；**线上 review.river-side.cc 仍运行旧版，尚未正式切换。**
+当前阶段：已完成真实数据迁移与正式上线。入口为 [river-side.cc/courses](https://river-side.cc/courses)，与校友地图共用“校园生活”侧栏分组；旧 review.river-side.cc 链接跳转到对应原生页面。发布代码提交为 `bb7a1e15c21dd1562b2d3267a54daa40393b9e88`。
 
 ## 配置
 
