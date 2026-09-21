@@ -173,6 +173,7 @@ class CourseParityTest < Minitest::Test
     assert_equal @bob.id,comment.user_id;assert comment.anonymous
   end
   def test_legacy_links_and_export_are_owner_scoped
+    assert_equal({view:'mine'},A::Service.legacy_query('me/'))
     r=review;review(@bob,@mentor)
     A::Legacy.create!(source:'Course',legacy_id:'legacy-course',target_kind:'Course',target_id:@course.id,data:{})
     assert_equal({view:'course',id:@course.id},A::Service.legacy_query('courses/legacy-course'))

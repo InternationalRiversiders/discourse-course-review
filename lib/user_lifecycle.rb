@@ -66,7 +66,7 @@ module DiscourseCourseReview
   end
   module Service
     def self.legacy_query(path,params={})
-      path=path.sub(%r{\A/},'')
+      path=path.sub(%r{\A/},'').delete_suffix('/')
       if path.blank?
         view=%w[reviews courses mentors].include?(params['tab']) ? params['tab'] : 'home'
         query=params.slice('q','campus','college','semester','page')

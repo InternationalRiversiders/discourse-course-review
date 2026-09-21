@@ -2,7 +2,7 @@
 
 Rails / PostgreSQL 后端与原生 Glimmer 页面，入口 `/courses`。日常运行无需旧 Next.js 服务。课程与导师保留独立目录、评分和讨论；评价不转换成普通论坛帖子。
 
-当前阶段：已完成真实数据迁移与正式上线。入口为 [river-side.cc/courses](https://river-side.cc/courses)，与校友地图共用“校园生活”侧栏分组；旧 review.river-side.cc 链接跳转到对应原生页面。发布代码提交为 `bb7a1e15c21dd1562b2d3267a54daa40393b9e88`。
+当前阶段：已完成真实数据迁移与正式上线。入口为 [river-side.cc/courses](https://river-side.cc/courses)，与校友地图共用“校园生活”侧栏分组；旧 review.river-side.cc 链接跳转到对应原生页面。首次发布代码提交为 `bb7a1e15c21dd1562b2d3267a54daa40393b9e88`。
 
 ## 配置
 
@@ -42,3 +42,5 @@ COURSES_CATALOG_ACTOR_ID=123 RAILS_ENV=production bundle exec rails runner plugi
 确认结果后，先开启 `courses_read_only`，再使用 `COURSES_CATALOG_APPLY=1`、`COURSES_CATALOG_SHA256=<核对的 SHA>` 和同一管理员执行。按“课程序号+学期”或导师来源编号更新，保留评价与讨论关联，不删除目录中未出现的对象。Excel 使用旧工具相同的工作簿读取库；不支持 Excel 97 二进制格式的伪装输入。
 
 通知使用原生铃铛并链接到讨论；不发送历史通知、邮件或私聊。举报在插件自己的管理页处理，尚未接入全站 Reviewable 队列。停用或卸载插件不会自动删除业务表。
+
+最新功能核对和历史链接修补见 [最终复核](docs/final-review.md)。
