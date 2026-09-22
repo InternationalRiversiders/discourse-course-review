@@ -62,8 +62,9 @@ module DiscourseCourseReview
       query={'view'=>review.subject_kind=='Course' ? 'course' : 'mentor','id'=>review.subject_id}
       reaction=Shared.reactions(review,user)
       count=Comment.where(target_kind:'Review',target_id:review.id,status:'visible').count
+      author=review.anonymous ? nil : Shared.forum_user(review.user_id)
       card=Ui.card("review-#{review.id}",item.is_a?(Course) ? item.title : item&.name,review.body,
-        type:'review',tag:review.anonymous ? '匿名评价' : Shared.user_name(review.user_id),
+        type:'review',tag:review.anonymous ? '匿名评价' : (author ? nil : '已注销用户'),forum_user:author,
         subtitle:review.subject_kind=='Course' ? "#{item&.teachers} · #{term_label(review.term_taken)} · #{item&.class_no}" : item&.department,
         created_at:review.created_at.iso8601,advice:review.advice,
         metrics:labels.map { |key,label| {label:label,value:rating(review.scores[key])} },
@@ -265,7 +266,7 @@ module DiscourseCourseReview
     end
     def self.comment_card(c,user,personal:false)
       parent=c.parent_id && Comment.find_by(id:c.parent_id,status:'visible')
-      card=Ui.card("comment-#{c.id}",c.anonymous ? '匿名回复' : Shared.user_name(c.user_id),c.body,type:'comment',created_at:c.created_at.iso8601,
+      card=Ui.card("comment-#{c.id}",c.anonymous ? '匿名回复' : Shared.user_name(c.user_id),c.body,type:'comment',author_title:true,forum_user:c.anonymous ? nil : Shared.forum_user(c.user_id),created_at:c.created_at.iso8601,
         subtitle:parent ? "回复 #{parent.anonymous ? '匿名' : Shared.user_name(parent.user_id)}：#{parent.body.truncate(80)}" : nil)
       if personal
         card[:status]=STATUS[c.status];card[:hidden_reason]=c.hidden_reason

@@ -1,4 +1,6 @@
 import { formatDateTime } from "../lib/campus-time";
+import ForumUser from "./courses-user";
+import DUserAvatar from "discourse/ui-kit/d-user-avatar";
 import Component from "@glimmer/component";
 import { on } from "@ember/modifier";
 import { fn } from "@ember/helper";
@@ -17,13 +19,13 @@ export default class extends Component {
   <template>
     <article class="river-card" data-card-id={{@card.id}} data-card-type={{@card.type}}>
       <div class="river-card-heading">
-        <span class="river-card-symbol" aria-hidden="true"><AppIcon
+        <div class="river-card-symbol">{{#if @card.forum_user}}<DUserAvatar @user={{@card.forum_user}} @size="medium" />{{else}}<AppIcon
             @kind="book"
-          /></span>
+          />{{/if}}</div>
         <div class="river-card-heading-text">{{#if @card.tag}}<span
               class="river-tag"
             >{{@card.tag}}</span>{{/if}}
-          <h2>{{@card.title}}</h2>{{#if @card.subtitle}}<p
+          {{#unless @card.author_title}}{{#if @card.forum_user}}<ForumUser @user={{@card.forum_user}} @hideAvatar={{true}} />{{/if}}{{/unless}}<h2>{{#if @card.author_title}}<ForumUser @user={{@card.forum_user}} @name={{@card.title}} @hideAvatar={{true}} />{{else}}{{@card.title}}{{/if}}</h2>{{#if @card.subtitle}}<p
               class="river-meta"
             >{{@card.subtitle}}</p>{{/if}}
         </div>

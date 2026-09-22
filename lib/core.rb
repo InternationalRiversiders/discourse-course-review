@@ -87,6 +87,11 @@ module DiscourseCourseReview
         Rails.logger.warn("courses notification #{event.id}: #{e.class}")
       end
     end
+    # Public forum fields only; callers enforce each feature's anonymity rules.
+    def self.forum_user(id)
+      user = id.is_a?(User) ? id : User.find_by(id: id)
+      user && { id: user.id, username: user.username, avatar_template: user.avatar_template }
+    end
     def self.user_name(id) = User.find_by(id: id)&.username || "已注销用户"
     def self.image(bytes)
       signature = bytes.byteslice(0,12)
@@ -130,7 +135,7 @@ module DiscourseCourseReview
     end
     def self.comments(kind, id, user)
       Comment.where(target_kind: kind, target_id: id, status: "visible").order(:id).limit(300).map do |c|
-        { id: c.id, parent_id: c.parent_id, body: c.body, author: c.anonymous ? "匿名" : user_name(c.user_id), mine: user&.id == c.user_id, created_at: c.created_at, images: media_urls(c.media_ids), rating: c.rating }.merge(reactions(c,user))
+        { id: c.id, parent_id: c.parent_id, body: c.body, author: c.anonymous ? "匿名" : user_name(c.user_id), forum_user: c.anonymous ? nil : forum_user(c.user_id), mine: user&.id == c.user_id, created_at: c.created_at, images: media_urls(c.media_ids), rating: c.rating }.merge(reactions(c,user))
       end
     end
     def self.comment(user, item, data)
@@ -308,7 +313,7 @@ module DiscourseCourseReview
           fields<<Ui.field('anonymous','匿名回复',false,type:'checkbox') if anonymous
           ui[:forms].unshift(Ui.form(nil,'comment',fields,{'kind'=>kind,'id'=>item.id,'parent_id'=>c.id},button:'回复'))
         end
-        Ui.card("comment-#{c.id}",c.anonymous ? '匿名' : user_name(c.user_id),c.body,subtitle:c.parent_id ? "回复 ##{c.parent_id}" : nil,created_at:c.created_at.iso8601,images:media_urls(c.media_ids),**ui)
+        Ui.card("comment-#{c.id}",c.anonymous ? '匿名' : user_name(c.user_id),c.body,author_title:true,forum_user:c.anonymous ? nil : forum_user(c.user_id),subtitle:c.parent_id ? "回复 ##{c.parent_id}" : nil,created_at:c.created_at.iso8601,images:media_urls(c.media_ids),**ui)
       end
     end
   end
