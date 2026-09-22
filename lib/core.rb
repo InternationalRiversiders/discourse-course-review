@@ -308,7 +308,7 @@ module DiscourseCourseReview
           fields<<Ui.field('anonymous','匿名回复',false,type:'checkbox') if anonymous
           ui[:forms].unshift(Ui.form(nil,'comment',fields,{'kind'=>kind,'id'=>item.id,'parent_id'=>c.id},button:'回复'))
         end
-        Ui.card("comment-#{c.id}",c.anonymous ? '匿名' : user_name(c.user_id),c.body,subtitle:"#{c.parent_id ? "回复 ##{c.parent_id} · " : ''}#{c.created_at.strftime('%Y-%m-%d %H:%M')}",images:media_urls(c.media_ids),**ui)
+        Ui.card("comment-#{c.id}",c.anonymous ? '匿名' : user_name(c.user_id),c.body,subtitle:c.parent_id ? "回复 ##{c.parent_id}" : nil,created_at:c.created_at.iso8601,images:media_urls(c.media_ids),**ui)
       end
     end
   end

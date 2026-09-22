@@ -1,3 +1,4 @@
+import { formatDateTime } from "../lib/campus-time";
 import Component from "@glimmer/component";
 import { on } from "@ember/modifier";
 import { fn } from "@ember/helper";
@@ -6,7 +7,7 @@ import AppIcon from "./courses-icon";
 const href = (query) => "/courses?" + new URLSearchParams(query).toString();
 export default class extends Component {
   get date() {
-    return this.args.card.created_at ? new Intl.DateTimeFormat("zh-CN", {dateStyle:"medium", timeStyle:"short"}).format(new Date(this.args.card.created_at)) : "";
+    return formatDateTime(this.args.card.created_at);
   }
   get initial() {
     return Array.from(this.args.card.title || "")
