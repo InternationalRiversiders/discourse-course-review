@@ -5,11 +5,13 @@ import { tracked } from "@glimmer/tracking";
 import { action } from "@ember/object";
 import { on } from "@ember/modifier";
 import { fn } from "@ember/helper";
+import { not } from "discourse/truth-helpers";
 import AppForm from "./courses-form";
 import AppIcon from "./courses-icon";
 const href = (query) => "/courses?" + new URLSearchParams(query).toString();
 export default class extends Component {
   @tracked openForm;
+  @tracked visitedForms = [];
   get date() { return formatDateTime(this.args.card.created_at); }
   get isCourse() { return this.args.card.type === "course"; }
   get isReview() { return this.args.card.type === "review"; }
@@ -32,14 +34,16 @@ export default class extends Component {
   }
   get forms() {
     return (this.args.card.forms || []).map(form => ({ ...form,
-      expanded: this.openForm === form.key,
+      expanded: this.openForm === form.key, mounted: this.visitedForms.includes(form.key),
       label: form.operation === "comment" ? `讨论${this.args.card.discussion_count == null ? "" : ` ${this.args.card.discussion_count}`}` : form.operation === "moderate" ? "管理" : form.title || "回复",
     }));
   }
-  get activeForm() { return this.args.card.forms?.find(form => form.key === this.openForm); }
   get discussionLink() { return this.isReview && !this.forms.some(form => form.operation === "comment") && this.primaryLink; }
   get hasFooter() { return Boolean(this.args.card.actions?.length || this.links.length || this.forms.length || this.discussionLink); }
-  @action toggleForm(key) { this.openForm = this.openForm === key ? null : key; }
+  @action toggleForm(key) {
+    if (!this.visitedForms.includes(key)) { this.visitedForms = [...this.visitedForms, key]; }
+    this.openForm = this.openForm === key ? null : key;
+  }
   <template>
     <article class="river-card {{if this.primaryLink 'is-clickable'}}" data-card-id={{@card.id}} data-card-type={{@card.type}}>
       {{#if this.isCourse}}
@@ -73,7 +77,7 @@ export default class extends Component {
         {{#each this.links as |link|}}<a href={{href link.query}} {{on "click" (fn @navigate link.query)}}>{{link.label}}</a>{{/each}}
         {{#each this.forms key="key" as |form|}}<button class="btn btn-flat btn-small" type="button" aria-expanded={{form.expanded}} {{on "click" (fn this.toggleForm form.key)}}>{{form.label}}</button>{{/each}}
       </div>{{/if}}
-      {{#if this.activeForm}}<div class="river-card-editor">{{#each this.forms key="key" as |form|}}{{#if form.expanded}}<AppForm @form={{form}} @execute={{@execute}} />{{/if}}{{/each}}</div>{{/if}}
+      {{#each this.forms key="key" as |form|}}{{#if form.mounted}}<div class="river-card-editor" hidden={{not form.expanded}}><AppForm @form={{form}} @execute={{@execute}} /></div>{{/if}}{{/each}}
     </article>
   </template>
 }

@@ -1019,3 +1019,8 @@
   .river-filter-extra[hidden] { display: none; }
   .river-search-main > label > .sr-only { position: absolute; }
 }
+
+.river-courses {
+  .river-card-editor[hidden] { display: none; }
+  .river-card[data-card-type="review"] .river-metrics:has(> div:nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

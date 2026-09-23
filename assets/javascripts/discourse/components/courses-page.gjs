@@ -127,8 +127,8 @@ export default class extends Component {
         post: "树洞里的对话",
         review: "评价与讨论",
         shop: "店铺详情",
-        course: "课程详情",
-        mentor: "导师详情",
+        course: "课程评价",
+        mentor: "导师评价",
         teacher: "任课教师",
       }[this.data.view] ||
       "内容详情"
