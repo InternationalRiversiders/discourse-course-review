@@ -1,3 +1,4 @@
+import cardMasonry from "../modifiers/card-masonry";
 import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
 import { action } from "@ember/object";
@@ -209,7 +210,7 @@ export default class extends Component {
         <section class="river-course-section" data-section={{group.id}} aria-label={{group.title}}>
           <div class="river-section-heading"><div><h2>{{group.title}}</h2>{{#if group.description}}<p>{{group.description}}</p>{{/if}}</div>
             {{#if group.more}}<button class="btn btn-flat" type="button" {{on "click" (fn this.navigate group.more.query)}}>{{group.more.label}}<AppIcon @kind="arrow" /></button>{{/if}}</div>
-          <div class="river-grid">{{#each group.cards key="id" as |card|}}<AppCard @card={{card}} @view={{this.data.view}} @busy={{this.busy}} @navigate={{this.navigate}} @button={{this.button}} @execute={{this.execute}} />{{else}}<p class="river-note">还没有相关内容，等第一条真实体验。</p>{{/each}}</div>
+          <div class="river-grid" {{cardMasonry ".river-card[data-card-type=review]"}}>{{#each group.cards key="id" as |card|}}<AppCard @card={{card}} @view={{this.data.view}} @busy={{this.busy}} @navigate={{this.navigate}} @button={{this.button}} @execute={{this.execute}} />{{else}}<p class="river-note">还没有相关内容，等第一条真实体验。</p>{{/each}}</div>
         </section>
       {{/each}}
       <div class={{this.workspaceClass}}>
@@ -219,7 +220,7 @@ export default class extends Component {
           ><div class="river-section-heading"><h2
               >{{this.currentTitle}}</h2><span
               >把真实经验，留给下一位同学</span></div>
-            <div class="river-grid">{{#each
+            <div class="river-grid" {{cardMasonry ".river-card[data-card-type=review]"}}>{{#each
                 this.data.cards key="id"
                 as |card|
               }}<AppCard

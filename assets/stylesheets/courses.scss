@@ -1032,3 +1032,15 @@
   .river-card-footer .river-icon-action:hover, .river-card-footer .river-icon-action[aria-pressed="true"] { color: var(--river-ink); background: var(--river-tint); }
   @media (max-width: 700px) { .river-card-footer .river-icon-action { min-height: 36px; } }
 }
+
+// Keep variable-height cards compact without moving their DOM or draft inputs.
+.river-courses .river-grid.is-card-masonry {
+  grid-auto-rows: 1px;
+  grid-auto-flow: row;
+  row-gap: 0;
+  align-items: start;
+  > * {
+    grid-row-end: span var(--card-row-span, 1);
+    align-self: start;
+  }
+}
