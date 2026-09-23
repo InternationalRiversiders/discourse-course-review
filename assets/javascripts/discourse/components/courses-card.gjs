@@ -29,7 +29,7 @@ export default class extends Component {
       return true;
     }).map(link => ({ ...link, icon: link.label.includes("编辑") ? "pen" : link.label === "查看讨论" ? "comment" : null }));
   }
-  get actions() {
+  get cardActions() {
     return (this.args.card.actions || []).map(item => ({ ...item,
       icon: item.operation === "react" ? (item.label.startsWith("赞") ? "thumbs-up" : "thumbs-down") : ({ delete_own: "trash-can", bookmark: "bookmark", remove_bookmark: "bookmark", resolve_report: "check" }[item.operation] || "check"),
       count: item.operation === "react" ? item.label.match(/\d+$/)?.[0] : null,
@@ -82,7 +82,7 @@ export default class extends Component {
         {{#if @card.metrics}}<dl class="river-metrics">{{#each @card.metrics as |metric|}}<div><dt>{{metric.label}}</dt><dd>{{metric.value}}</dd></div>{{/each}}</dl>{{/if}}
       {{/unless}}
       {{#if this.hasFooter}}<div class="river-card-footer">
-        {{#each this.actions as |item|}}<button class="btn btn-flat btn-small river-icon-action" type="button" title={{item.label}} aria-label={{item.label}} aria-pressed={{item.pressed}} disabled={{@busy}} {{on "click" (fn @button item)}}>{{dIcon item.icon}}{{#if item.count}}<span>{{item.count}}</span>{{/if}}</button>{{/each}}
+        {{#each this.cardActions as |item|}}<button class="btn btn-flat btn-small river-icon-action" type="button" title={{item.label}} aria-label={{item.label}} aria-pressed={{item.pressed}} disabled={{@busy}} {{on "click" (fn @button item)}}>{{dIcon item.icon}}{{#if item.count}}<span>{{item.count}}</span>{{/if}}</button>{{/each}}
         {{#if this.discussionLink}}<a class="river-icon-action" href={{href this.discussionLink.query}} title="查看讨论" aria-label="查看讨论" {{on "click" (fn @navigate this.discussionLink.query)}}>{{dIcon "comment"}}<span>{{@card.discussion_count}}</span></a>{{/if}}
         {{#each this.links as |link|}}<a class={{if link.icon "river-icon-action"}} href={{href link.query}} title={{link.label}} aria-label={{link.label}} {{on "click" (fn @navigate link.query)}}>{{#if link.icon}}{{dIcon link.icon}}{{else}}{{link.label}}{{/if}}</a>{{/each}}
         {{#each this.forms key="key" as |form|}}<button class="btn btn-flat btn-small river-icon-action" type="button" title={{form.label}} aria-label={{form.label}} aria-expanded={{form.expanded}} {{on "click" (fn this.toggleForm form.key)}}>{{dIcon form.icon}}{{#if form.count}}<span>{{form.count}}</span>{{/if}}</button>{{/each}}
