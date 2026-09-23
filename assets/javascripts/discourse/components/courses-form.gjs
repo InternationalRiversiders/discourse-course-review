@@ -3,6 +3,7 @@ import { tracked } from "@glimmer/tracking";
 import { action } from "@ember/object";
 import { service } from "@ember/service";
 import CourseRating from "./courses-rating";
+import CourseTerm from "./courses-term";
 import { on } from "@ember/modifier";
 import { eq } from "discourse/truth-helpers";
 import { ajax } from "discourse/lib/ajax";
@@ -109,7 +110,9 @@ export default class extends Component {
               class="river-fieldset-note"
             >{{group.description}}</p>{{/if}}
           <div class="river-fields">{{#each group.fields key="name" as |field|}}
-              <label
+              {{#if (eq field.type "rating")}}<div class="river-rating-field"><span class="river-field-label">{{field.label}}<span class="river-required" aria-hidden="true"> *</span></span><CourseRating @field={{field}} />{{#if field.hint}}<small>{{field.hint}}</small>{{/if}}</div>
+              {{else if (eq field.name "term_taken")}}<div class="river-field-wide"><CourseTerm @field={{field}} /></div>
+              {{else}}<label
                 class="{{if (eq field.type 'textarea') 'river-field-wide'}}
                   {{if (eq field.type 'checkbox') 'river-checkbox'}}
                   {{if
@@ -129,7 +132,6 @@ export default class extends Component {
                     maxlength={{field.maxlength}}
                     minlength={{field.minlength}}
                   >{{field.value}}</textarea>
-                {{else if (eq field.type "rating")}}<CourseRating @field={{field}} />
                 {{else if (eq field.type "select")}}<select
                     name={{field.name}}
                     aria-label={{field.label}}
@@ -161,7 +163,7 @@ export default class extends Component {
                     maxlength={{if field.maxlength field.maxlength 8000}}
                   />{{/if}}
                 {{#if field.hint}}<small>{{field.hint}}</small>{{/if}}
-              </label>
+              </label>{{/if}}
             {{/each}}</div>
         </fieldset>
       {{/each}}

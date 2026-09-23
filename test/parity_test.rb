@@ -27,6 +27,21 @@ class CourseParityTest < Minitest::Test
     A::Review.find_by!(user_id:user.id,subject_id:item.id,subject_kind:item.is_a?(A::Course) ? 'Course' : 'Mentor')
   end
   def state(query={},as:@alice,**extra) = A::Service.state(as,query.merge(extra).deep_stringify_keys)
+  def test_card_identity_and_study_metadata_preserve_anonymity
+    r=review(term_taken:'2025-2026-2',take_again:'false')
+    card=A::Service.review_card(r,@bob)
+    assert_equal '匿名评价',card[:author_name]
+    assert_nil card[:forum_user]
+    refute_includes card.to_json,@alice.username
+    assert_equal '2025-2026 学年第二学期',card[:study_term]
+    assert_equal false,card[:take_again]
+    assert_equal({'view'=>'course','id'=>@course.id},card[:subject_query])
+    r.update!(anonymous:false)
+    card=A::Service.review_card(r,@bob)
+    assert_equal @alice.username,card[:author_name]
+    assert_equal @alice.username,card[:forum_user][:username]
+    assert_includes card[:subject_meta],@course.class_no
+  end
   def test_default_home_popularity_is_not_import_order
     older=review;older.update_columns(created_at:2.days.ago)
     newer=review(@bob,@other);newer.update_columns(created_at:1.day.ago)

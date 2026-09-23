@@ -67,6 +67,10 @@ module DiscourseCourseReview
         type:'review',tag:review.anonymous ? '匿名评价' : (author ? nil : '已注销用户'),forum_user:author,
         subtitle:review.subject_kind=='Course' ? "#{item&.teachers} · #{term_label(review.term_taken)} · #{item&.class_no}" : item&.department,
         created_at:review.created_at.iso8601,advice:review.advice,
+        author_name:review.anonymous ? '匿名评价' : (author ? author[:username] : '已注销用户'),
+        subject_meta:review.subject_kind=='Course' ? [item&.teachers,item&.class_no].compact.join(' · ') : item&.department,
+        study_term:review.subject_kind=='Course' ? term_label(review.term_taken) : nil,
+        take_again:review.take_again,discussion_count:count,subject_query:query,
         metrics:labels.map { |key,label| {label:label,value:rating(review.scores[key])} },
         links:[Ui.link('查看详情',query),Ui.link("讨论 · #{count}",{'view'=>'review','id'=>review.id})])
       card[:details]=[{label:'再次选择',value:review.take_again ? '愿意' : '不愿意'}] unless review.take_again.nil?

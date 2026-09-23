@@ -914,3 +914,108 @@
   > a[data-user-card] { display: block; width: 100%; height: 100%; }
   .avatar { display: block; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 }
+
+// Course-specific cards: a readable subject, quiet metadata and one action row.
+.river-courses {
+  .river-search { padding: 14px 18px; }
+  .river-search-main { align-items: end; gap: 10px; }
+  .river-search-main label { margin: 0; gap: 6px; }
+  .river-search-main input, .river-search-main > .btn { height: 42px; min-height: 42px; margin: 0; }
+  .river-search-mark { align-self: end; display: grid; place-items: center; height: 42px; }
+  .river-filter-extra { margin-top: 4px; }
+  .river-filter-extra summary { display: list-item; width: fit-content; min-height: 0; line-height: 24px; padding: 2px 0; }
+  .river-filter-fields { padding-top: 8px; }
+
+  .river-card { position: relative; }
+  .river-card.is-clickable { cursor: pointer; }
+  .river-card-target { color: inherit; text-decoration: none; }
+  .river-card-target::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: 14px; }
+  .river-card-target:focus-visible { outline: none; }
+  .river-card-target:focus-visible::after { outline: 2px solid var(--tertiary); outline-offset: 3px; }
+  .river-card-footer, .river-card-editor, .river-images, .river-external-link, .courses-forum-user { position: relative; z-index: 2; }
+  .river-card-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; padding-top: 10px; margin-top: 12px; border-top: 1px solid var(--river-line); }
+  .river-card-footer:empty { display: none; }
+  .river-card-footer .btn { min-height: 32px; padding: 4px 2px; border: 0; background: none; box-shadow: none; font-size: 12px; color: var(--river-muted); }
+  .river-card-footer a { font-size: 12px; color: var(--river-ink); }
+  .river-card-footer .btn:hover { background: var(--river-tint); }
+  .river-card-footer .btn[aria-expanded="true"] { color: var(--river-ink); background: var(--river-tint); }
+  .river-card-editor .river-form { margin: 12px 0 0; padding: 16px; background: var(--primary-very-low); }
+
+  &[data-view] .river-card[data-card-type="course"] { display: block; padding: 20px; }
+  .river-course-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+  .river-course-title { display: flex; align-items: start; gap: 10px; min-width: 0; }
+  .river-course-title h2 { margin: 0; font-size: 17px; line-height: 1.5; }
+  .river-course-icon { display: grid; place-items: center; flex: 0 0 30px; height: 30px; border-radius: 8px; background: var(--river-tint); color: var(--river-ink); }
+  .river-course-icon .river-icon { width: 19px; height: 19px; }
+  .river-course-score { display: flex; flex: 0 0 auto; gap: 14px; margin: 0; text-align: right; }
+  .river-course-score dt { font-size: 10px; color: var(--river-muted); white-space: nowrap; }
+  .river-course-score dd { margin: 2px 0 0; font-size: 20px; line-height: 1.25; font-weight: 650; color: var(--river-ink); font-variant-numeric: tabular-nums; }
+  .river-course-score > div:last-child dd { font-size: 16px; line-height: 25px; color: var(--primary-high); }
+  .river-course-teachers { margin: 14px 0 8px; font-size: 13px; overflow-wrap: anywhere; }
+  .river-course-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; color: var(--river-muted); font-size: 11px; line-height: 1.7; }
+  .river-course-meta > span:first-child { color: var(--river-ink); }
+  .river-card[data-card-type="course"] .river-popularity { display: inline-block; margin-top: 10px; padding: 2px 7px; border-radius: 5px; background: var(--river-tint); font-size: 10px; }
+
+  .river-card[data-card-type="review"] { padding: 20px; }
+  .river-review-subject { margin-bottom: 12px; }
+  .river-review-subject h2 { margin: 0 0 3px; font-size: 17px; }
+  .river-review-byline { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; }
+  .river-review-author { display: flex; align-items: center; gap: 7px; min-width: 0; flex-wrap: wrap; }
+  .river-review-author .courses-forum-user { font-size: 12px; min-width: 0; }
+  .river-review-author .courses-forum-user > span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .river-review-author .avatar { width: 22px; height: 22px; flex-basis: 22px; }
+  .river-review-author .courses-user-label { font-size: 12px; font-weight: 600; color: var(--river-muted); }
+  .river-review-byline time { flex: 0 0 auto; margin: 0; color: var(--river-muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+  .river-choice-tag { padding: 2px 6px; border-radius: 4px; font-size: 10px; line-height: 1.5; white-space: nowrap; background: var(--primary-very-low); color: var(--primary-high); }
+  .river-choice-tag.is-positive { background: var(--success-low); color: var(--success); }
+  .river-choice-tag.is-negative { background: var(--danger-low); color: var(--danger); }
+  .river-review-term { margin: 4px 0 0; color: var(--river-muted); font-size: 11px; }
+  .river-card[data-card-type="review"] .river-body { margin: 14px 0 12px; line-height: 1.8; }
+  .river-advice { margin: 12px 0; padding: 8px 10px; font-size: 13px; line-height: 1.7; }
+  .river-advice > span { display: block; font-size: 10px; color: var(--river-muted); margin-bottom: 3px; }
+  .river-card[data-card-type="review"] .river-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 12px 0 0; padding-top: 12px; }
+  .river-card[data-card-type="review"] .river-metrics dt { font-size: 10px; margin-bottom: 3px; }
+  .river-card[data-card-type="review"] .river-metrics dd { font-size: 15px; }
+  .river-review-open { display: block; width: 0; height: 0; }
+  .river-card[data-card-type="comment"] .river-card-heading { gap: 12px; align-items: center; }
+
+  .river-term-input { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 12px; }
+  .river-rating-field { min-width: 0; }
+  .river-field-label { display: block; color: var(--river-muted); font-size: 13px; margin-bottom: 6px; }
+  .river-rating-field > small { display: block; color: var(--river-muted); font-size: 11px; margin-top: 4px; }
+  .river-rating-input { display: flex; align-items: center; gap: 10px; min-height: 38px; }
+  .river-rating-input output { font-size: 12px; min-width: 3em; }
+  .river-stars { display: flex; flex: 0 0 auto; }
+  .river-stars .river-star-half { position: relative; display: block; width: 15px; height: 34px; margin: 0; overflow: hidden; cursor: pointer; color: var(--primary-low-mid); }
+  .river-star-half > span { position: absolute; top: 0; left: 0; width: 30px; height: 34px; font-size: 30px; line-height: 34px; text-align: center; }
+  .river-star-half.is-right > span { left: -15px; }
+  .river-star-half.is-filled { color: var(--tertiary); }
+  .river-star-half:hover { color: var(--tertiary); background: var(--river-tint); }
+  .river-star-half:has(input:focus-visible) { outline: 2px solid var(--tertiary); outline-offset: -2px; border-radius: 3px; }
+  .river-stars input.sr-only { padding: 0; min-height: 0; width: 1px; height: 1px; }
+
+  @media (max-width: 700px) {
+    .river-search { padding: 12px; }
+    .river-card[data-card-type="course"], .river-card[data-card-type="review"] { padding: 16px; }
+    .river-course-heading { gap: 10px; }
+    .river-course-title { gap: 7px; }
+    .river-course-icon { display: none; }
+    .river-course-title h2, .river-review-subject h2 { font-size: 16px; }
+    .river-course-score { gap: 9px; }
+    .river-course-score dd { font-size: 18px; }
+    .river-review-byline { align-items: start; }
+    .river-review-byline time { max-width: 112px; text-align: right; line-height: 1.7; }
+    .river-review-author { gap: 5px; }
+    .river-card-footer { gap: 2px 14px; }
+    .river-card-footer .btn { min-height: 36px; }
+    .river-term-input { gap: 8px; }
+  }
+}
+
+.river-courses {
+  .river-search-caption { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+  .river-search-caption > label { margin: 0; flex: 1; min-width: 0; font-size: 12px; }
+  .river-search-caption .river-filter-toggle { padding: 0 2px; min-height: 26px; flex: 0 0 auto; font-size: 11px; border: 0; background: transparent; color: var(--river-ink); }
+  .river-filter-extra[hidden] { display: none; }
+  .river-search-main > label > .sr-only { position: absolute; }
+}

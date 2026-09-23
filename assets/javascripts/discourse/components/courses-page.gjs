@@ -5,7 +5,7 @@ import { service } from "@ember/service";
 import { modifier } from "ember-modifier";
 import { on } from "@ember/modifier";
 import { fn } from "@ember/helper";
-import { eq } from "discourse/truth-helpers";
+import { eq, not } from "discourse/truth-helpers";
 import { ajax } from "discourse/lib/ajax";
 import { extractError } from "discourse/lib/ajax-error";
 import AppForm from "./courses-form";
@@ -23,6 +23,9 @@ export default class extends Component {
   @tracked busy = false;
   @tracked error = "";
   @tracked notice = "";
+  @tracked filtersExpanded;
+  get filtersOpen() { return this.filtersExpanded ?? this.activeFilters; }
+  @action toggleFilters() { this.filtersExpanded = !this.filtersOpen; }
   get data() {
     return this.snapshot || this.args.model;
   }
@@ -178,11 +181,12 @@ export default class extends Component {
           role="search"
           {{on "submit" this.search}}
         >
+          <div class="river-search-caption"><label for="courses-keyword">{{this.primaryFilter.label}}</label>{{#if this.extraFilters.length}}<button class="btn btn-flat river-filter-toggle" type="button" aria-expanded={{this.filtersOpen}} aria-controls="courses-extra-filters" {{on "click" this.toggleFilters}}>{{if this.filtersOpen "收起筛选" "更多筛选"}}</button>{{/if}}</div>
           <div class="river-search-main"><span
               class="river-search-mark"
             ><AppIcon @kind="search" /></span><label
-            >{{this.primaryFilter.label}}<input
-                type="search"
+            ><span class="sr-only">{{this.primaryFilter.label}}</span><input
+                id="courses-keyword" type="search"
                 disabled={{this.busy}}
                 name={{this.primaryFilter.name}}
                 value={{this.primaryFilter.value}}
@@ -192,13 +196,10 @@ export default class extends Component {
               type="submit"
               disabled={{this.busy}}
             >筛选<AppIcon @kind="arrow" /></button></div>
-          {{#if this.extraFilters.length}}<details
-              class="river-filter-extra"
-              open={{this.activeFilters}}
-            ><summary>更多筛选</summary><div class="river-filter-fields">{{#each
+          {{#if this.extraFilters.length}}<div id="courses-extra-filters" class="river-filter-extra" hidden={{not this.filtersOpen}}><div class="river-filter-fields">{{#each
                   this.extraFilters
                   as |field|
-                }}<label>{{field.label}}{{#if field.options}}<select disabled={{this.busy}} name={{field.name}} aria-label={{field.label}}>{{#each field.options as |choice|}}<option value={{choice.value}} selected={{eq choice.value field.value}}>{{choice.label}}</option>{{/each}}</select>{{else}}<input type="text" name={{field.name}} value={{field.value}} placeholder={{field.placeholder}} />{{/if}}</label>{{/each}}</div></details>{{/if}}
+                }}<label>{{field.label}}{{#if field.options}}<select disabled={{this.busy}} name={{field.name}} aria-label={{field.label}}>{{#each field.options as |choice|}}<option value={{choice.value}} selected={{eq choice.value field.value}}>{{choice.label}}</option>{{/each}}</select>{{else}}<input type="text" name={{field.name}} value={{field.value}} placeholder={{field.placeholder}} />{{/if}}</label>{{/each}}</div></div>{{/if}}
         </form>{{/if}}
 
       {{#if this.data.note}}<p class="river-note"><AppIcon @kind="book" /><span
@@ -208,7 +209,7 @@ export default class extends Component {
         <section class="river-course-section" data-section={{group.id}} aria-label={{group.title}}>
           <div class="river-section-heading"><div><h2>{{group.title}}</h2>{{#if group.description}}<p>{{group.description}}</p>{{/if}}</div>
             {{#if group.more}}<button class="btn btn-flat" type="button" {{on "click" (fn this.navigate group.more.query)}}>{{group.more.label}}<AppIcon @kind="arrow" /></button>{{/if}}</div>
-          <div class="river-grid">{{#each group.cards key="id" as |card|}}<AppCard @card={{card}} @busy={{this.busy}} @navigate={{this.navigate}} @button={{this.button}} @execute={{this.execute}} />{{else}}<p class="river-note">还没有相关内容，等第一条真实体验。</p>{{/each}}</div>
+          <div class="river-grid">{{#each group.cards key="id" as |card|}}<AppCard @card={{card}} @view={{this.data.view}} @busy={{this.busy}} @navigate={{this.navigate}} @button={{this.button}} @execute={{this.execute}} />{{else}}<p class="river-note">还没有相关内容，等第一条真实体验。</p>{{/each}}</div>
         </section>
       {{/each}}
       <div class={{this.workspaceClass}}>
@@ -222,7 +223,7 @@ export default class extends Component {
                 this.data.cards key="id"
                 as |card|
               }}<AppCard
-                  @card={{card}}
+                  @card={{card}} @view={{this.data.view}}
                   @busy={{this.busy}}
                   @navigate={{this.navigate}}
                   @button={{this.button}}
