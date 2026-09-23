@@ -7,7 +7,7 @@
 
 enabled_site_setting :courses_enabled
 register_asset "stylesheets/courses.scss"
-register_svg_icon "graduation-cap"
+%w[graduation-cap thumbs-up thumbs-down comment pen trash-can flag shield-halved bookmark check].each { |name| register_svg_icon name }
 require_relative "lib/engine"
 after_initialize do
   require_relative "lib/core"

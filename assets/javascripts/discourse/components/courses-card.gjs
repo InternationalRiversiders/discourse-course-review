@@ -1,5 +1,6 @@
 import { formatDateTime } from "../lib/campus-time";
 import ForumUser from "./courses-user";
+import dIcon from "discourse/ui-kit/helpers/d-icon";
 import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
 import { action } from "@ember/object";
@@ -26,7 +27,14 @@ export default class extends Component {
       if (this.isCourse) { return link !== this.primaryLink; }
       if (this.isReview) { return !["查看详情", "课程详情"].includes(link.label) && link.query.view !== "review"; }
       return true;
-    });
+    }).map(link => ({ ...link, icon: link.label.includes("编辑") ? "pen" : link.label === "查看讨论" ? "comment" : null }));
+  }
+  get actions() {
+    return (this.args.card.actions || []).map(item => ({ ...item,
+      icon: item.operation === "react" ? (item.label.startsWith("赞") ? "thumbs-up" : "thumbs-down") : ({ delete_own: "trash-can", bookmark: "bookmark", remove_bookmark: "bookmark", resolve_report: "check" }[item.operation] || "check"),
+      count: item.operation === "react" ? item.label.match(/\d+$/)?.[0] : null,
+      pressed: item.operation === "react" ? item.data.value === 0 : undefined,
+    }));
   }
   get again() {
     if (!this.isReview || this.args.card.take_again == null) { return null; }
@@ -35,6 +43,8 @@ export default class extends Component {
   get forms() {
     return (this.args.card.forms || []).map(form => ({ ...form,
       expanded: this.openForm === form.key, mounted: this.visitedForms.includes(form.key),
+      icon: ({ comment: "comment", report: "flag", moderate: "shield-halved" }[form.operation] || "pen"),
+      count: form.operation === "comment" && this.args.card.discussion_count != null ? String(this.args.card.discussion_count) : null,
       label: form.operation === "comment" ? `讨论${this.args.card.discussion_count == null ? "" : ` ${this.args.card.discussion_count}`}` : form.operation === "moderate" ? "管理" : form.title || "回复",
     }));
   }
@@ -72,10 +82,10 @@ export default class extends Component {
         {{#if @card.metrics}}<dl class="river-metrics">{{#each @card.metrics as |metric|}}<div><dt>{{metric.label}}</dt><dd>{{metric.value}}</dd></div>{{/each}}</dl>{{/if}}
       {{/unless}}
       {{#if this.hasFooter}}<div class="river-card-footer">
-        {{#each @card.actions as |item|}}<button class="btn btn-flat btn-small" type="button" disabled={{@busy}} {{on "click" (fn @button item)}}>{{item.label}}</button>{{/each}}
-        {{#if this.discussionLink}}<a href={{href this.discussionLink.query}} {{on "click" (fn @navigate this.discussionLink.query)}}>讨论 {{@card.discussion_count}}</a>{{/if}}
-        {{#each this.links as |link|}}<a href={{href link.query}} {{on "click" (fn @navigate link.query)}}>{{link.label}}</a>{{/each}}
-        {{#each this.forms key="key" as |form|}}<button class="btn btn-flat btn-small" type="button" aria-expanded={{form.expanded}} {{on "click" (fn this.toggleForm form.key)}}>{{form.label}}</button>{{/each}}
+        {{#each this.actions as |item|}}<button class="btn btn-flat btn-small river-icon-action" type="button" title={{item.label}} aria-label={{item.label}} aria-pressed={{item.pressed}} disabled={{@busy}} {{on "click" (fn @button item)}}>{{dIcon item.icon}}{{#if item.count}}<span>{{item.count}}</span>{{/if}}</button>{{/each}}
+        {{#if this.discussionLink}}<a class="river-icon-action" href={{href this.discussionLink.query}} title="查看讨论" aria-label="查看讨论" {{on "click" (fn @navigate this.discussionLink.query)}}>{{dIcon "comment"}}<span>{{@card.discussion_count}}</span></a>{{/if}}
+        {{#each this.links as |link|}}<a class={{if link.icon "river-icon-action"}} href={{href link.query}} title={{link.label}} aria-label={{link.label}} {{on "click" (fn @navigate link.query)}}>{{#if link.icon}}{{dIcon link.icon}}{{else}}{{link.label}}{{/if}}</a>{{/each}}
+        {{#each this.forms key="key" as |form|}}<button class="btn btn-flat btn-small river-icon-action" type="button" title={{form.label}} aria-label={{form.label}} aria-expanded={{form.expanded}} {{on "click" (fn this.toggleForm form.key)}}>{{dIcon form.icon}}{{#if form.count}}<span>{{form.count}}</span>{{/if}}</button>{{/each}}
       </div>{{/if}}
       {{#each this.forms key="key" as |form|}}{{#if form.mounted}}<div class="river-card-editor" hidden={{not form.expanded}}><AppForm @form={{form}} @execute={{@execute}} /></div>{{/if}}{{/each}}
     </article>

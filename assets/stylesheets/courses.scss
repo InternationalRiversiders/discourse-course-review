@@ -1024,3 +1024,11 @@
   .river-card-editor[hidden] { display: none; }
   .river-card[data-card-type="review"] .river-metrics:has(> div:nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+.river-courses {
+  .river-card-footer { justify-content: flex-end; gap: 4px 6px; }
+  .river-card-footer .river-icon-action { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 28px; min-height: 32px; padding: 4px 5px; border-radius: 6px; color: var(--river-muted); font-variant-numeric: tabular-nums; }
+  .river-icon-action .d-icon { width: 14px; height: 14px; color: inherit; }
+  .river-card-footer .river-icon-action:hover, .river-card-footer .river-icon-action[aria-pressed="true"] { color: var(--river-ink); background: var(--river-tint); }
+  @media (max-width: 700px) { .river-card-footer .river-icon-action { min-height: 36px; } }
+}
