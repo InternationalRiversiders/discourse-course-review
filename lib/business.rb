@@ -56,13 +56,12 @@ module DiscourseCourseReview
     def self.subject(review)
       (review.subject_kind=='Course' ? Course : Mentor).find_by(id:review.subject_id)
     end
-    def self.review_card(review,user,interaction:true)
+    def self.review_card(review,user,interaction:true,batch:nil)
       labels=review.subject_kind=='Course' ? COURSE_SCORES : MENTOR_SCORES
-      item=subject(review)
+      item=batch ? batch.subject(review) : subject(review)
       query={'view'=>review.subject_kind=='Course' ? 'course' : 'mentor','id'=>review.subject_id}
-      reaction=Shared.reactions(review,user)
-      count=Comment.where(target_kind:'Review',target_id:review.id,status:'visible').count
-      author=review.anonymous ? nil : Shared.forum_user(review.user_id)
+      count=batch ? batch.comments(review) : Comment.where(target_kind:'Review',target_id:review.id,status:'visible').count
+      author=review.anonymous ? nil : Shared.forum_user(batch ? batch.author(review) : review.user_id)
       card=Ui.card("review-#{review.id}",item.is_a?(Course) ? item.title : item&.name,review.body,
         type:'review',tag:review.anonymous ? '匿名评价' : (author ? nil : '已注销用户'),forum_user:author,
         subtitle:review.subject_kind=='Course' ? "#{item&.teachers} · #{term_label(review.term_taken)} · #{item&.class_no}" : item&.department,
@@ -77,7 +76,7 @@ module DiscourseCourseReview
       if review.status!='visible'
         card[:status]=STATUS[review.status];card[:hidden_reason]=review.hidden_reason
       elsif interaction
-        ui=Shared.interaction_ui(review,user,comments:true,anonymous:true)
+        ui=Shared.interaction_ui(review,user,comments:true,anonymous:true,reaction:batch&.reactions(review))
         card.merge!(ui.slice(:actions,:forms))
       end
       if user.id==review.user_id
@@ -86,18 +85,42 @@ module DiscourseCourseReview
       end
       card
     end
-    def self.course_card(rows,user,popularity:nil)
+    def self.review_cards(rows,user,**options)
+      rows=rows.to_a
+      batch=CardBatch.new(rows,user)
+      rows.map { |review| review_card(review,user,batch:batch,**options) }
+    end
+    def self.course_cards(groups,user,popularity:nil)
+      ids=groups.flatten.map(&:id)
+      scores=Review.where(subject_kind:'Course',subject_id:ids,status:'visible').pluck(:subject_id,:scores).group_by(&:first)
+      groups.map do |rows|
+        values=rows.flat_map { |row| (scores[row.id] || []).map(&:last) }
+        overall=values.filter_map { |v| v['overall']&.to_f }
+        metrics=[{label:'综合评分',value:rating(overall.empty? ? nil : overall.sum/overall.size)},{label:'评价数量',value:values.size}]
+        course_card(rows,user,popularity:popularity && rows.sum { |row| popularity[row.id] || 0 },metrics:metrics)
+      end
+    end
+    def self.course_card(rows,user,popularity:nil,metrics:nil)
       c=rows.first
       reviews=Review.where(subject_kind:'Course',subject_id:rows.map(&:id),status:'visible')
       card=Ui.card("course-#{c.id}",c.title,"#{c.code} · #{c.teachers}",type:'course',tag:c.campus,
         subtitle:"#{rows.size} 个教学班 · #{rows.map(&:term).reject(&:blank?).uniq.first(3).join(' / ')}",
-        metrics:stats(reviews,{'overall'=>'综合评分'}),links:[Ui.link('课程详情',{'view'=>'course','id'=>c.id})])
+        metrics:metrics || stats(reviews,{'overall'=>'综合评分'}),links:[Ui.link('课程详情',{'view'=>'course','id'=>c.id})])
       card[:badge]="近期 #{popularity} 条评价" if popularity
       card
     end
-    def self.mentor_card(m)
+    def self.mentor_cards(mentors)
+      mentors=mentors.to_a
+      scores=Review.where(subject_kind:'Mentor',subject_id:mentors.map(&:id),status:'visible').pluck(:subject_id,:scores).group_by(&:first)
+      mentors.map do |m|
+        values=(scores[m.id] || []).map(&:last)
+        overall=values.filter_map { |v| v['overall']&.to_f }
+        mentor_card(m,metrics:[{label:'综合评分',value:rating(overall.empty? ? nil : overall.sum/overall.size)},{label:'评价数量',value:values.size}])
+      end
+    end
+    def self.mentor_card(m,metrics:nil)
       Ui.card("mentor-#{m.id}",m.name,m.details['research_direction'],type:'mentor',tag:m.details['title'],subtitle:m.department,
-        metrics:stats(Review.where(subject_kind:'Mentor',subject_id:m.id,status:'visible'),{'overall'=>'综合评分'}),links:[Ui.link('导师详情',{'view'=>'mentor','id'=>m.id})])
+        metrics:metrics || stats(Review.where(subject_kind:'Mentor',subject_id:m.id,status:'visible'),{'overall'=>'综合评分'}),links:[Ui.link('导师详情',{'view'=>'mentor','id'=>m.id})])
     end
     def self.paginate(out,query,total,limit)
       pages=[(total.to_f/limit).ceil,1].max
@@ -129,17 +152,18 @@ module DiscourseCourseReview
         counts=ids.tally
         grouped=Catalog.listing(Course.where(id:ids.uniq)).order(term: :desc,class_no: :asc).to_a.group_by(&:group_key).values
         popular=Catalog.chinese_order(grouped) { |rows| rows.first.title }.each_with_index.sort_by { |rows,index| [-rows.sum { |c| counts[c.id] || 0 },index] }.first(8).map(&:first)
-        out[:sections] << {id:'popular-courses',title:'热门课程',description:'最近 240 条公开课程评价中的讨论热度',cards:popular.map { |rows| course_card(rows,user,popularity:rows.sum { |c| counts[c.id] || 0 }) },more:Ui.link('全部课程',{'view'=>'courses'})}
-        out[:sections] << {id:'recent-reviews',title:'最新课程评价',cards:latest.limit(10).map { |r| review_card(r,user) },more:Ui.link('全部评价',{'view'=>'reviews'})}
+        out[:sections] << {id:'popular-courses',title:'热门课程',description:'最近 240 条公开课程评价中的讨论热度',cards:course_cards(popular,user,popularity:counts),more:Ui.link('全部课程',{'view'=>'courses'})}
+        out[:sections] << {id:'recent-reviews',title:'最新课程评价',cards:review_cards(latest.limit(10),user),more:Ui.link('全部评价',{'view'=>'reviews'})}
         mentor_ids=Review.where(subject_kind:'Mentor',status:'visible').group(:subject_id).order(Arel.sql('COUNT(*) DESC'),:subject_id).limit(8).count.keys
         mentors=Mentor.where(id:mentor_ids).index_by(&:id)
-        out[:sections] << {id:'popular-mentors',title:'热门导师',cards:mentor_ids.filter_map { |id| mentors[id] && mentor_card(mentors[id]) },more:Ui.link('导师库',{'view'=>'mentors'})}
-        out[:sections] << {id:'recent-mentor-reviews',title:'最新导师评价',cards:recent(Review.where(subject_kind:'Mentor',status:'visible')).limit(5).map { |r| review_card(r,user) }}
+        out[:sections] << {id:'popular-mentors',title:'热门导师',cards:mentor_cards(mentor_ids.filter_map { |id| mentors[id] }),more:Ui.link('导师库',{'view'=>'mentors'})}
+        out[:sections] << {id:'recent-mentor-reviews',title:'最新导师评价',cards:review_cards(recent(Review.where(subject_kind:'Mentor',status:'visible')).limit(5),user)}
       when 'courses'
-        groups=Catalog.groups(query);offset=paginate(out,query,groups.size,40)
+        groups,total,offerings=Catalog.page(query,40)
+        paginate(out,query,total,40)
         out[:filters]=Catalog.filters(query)
-        out[:stats]=[{label:'课程组合',value:groups.size},{label:'教学班',value:groups.sum(&:size)}]
-        out[:cards]=groups.slice(offset,40).to_a.map { |rows| course_card(rows,user) }
+        out[:stats]=[{label:'课程组合',value:total},{label:'教学班',value:offerings}]
+        out[:cards]=course_cards(groups,user)
         if q.present?
           identities=Catalog.listing(Course.where('teachers ILIKE ?', "%#{ActiveRecord::Base.sanitize_sql_like(q)}%")).flat_map { |c| teachers(c) }.select { |t| t[:name]==q }.uniq { |t| [t[:name],t[:department]] }
           unless identities.empty?
@@ -153,7 +177,7 @@ module DiscourseCourseReview
           scope=scope.where(subject_id:Catalog.course_scope(query).select(:id))
         end
         offset=paginate(out,query,scope.count,20)
-        out[:cards]=recent(scope).offset(offset).limit(20).map { |r| review_card(r,user) }
+        out[:cards]=review_cards(recent(scope).offset(offset).limit(20),user)
       when 'teachers','teacher'
         courses=Catalog.listing.order(term: :desc,class_no: :asc).to_a
         if out[:view]=='teacher'
@@ -163,9 +187,9 @@ module DiscourseCourseReview
           out[:note]="#{query['department']} · #{query['name']}。评分汇总该教师参与授课的教学班。"
           out[:stats]=stats(reviews,COURSE_SCORES)
           groups=selected.group_by(&:group_key).values
-          out[:sections] << {id:'teacher-courses',title:'任课课程',cards:groups.map { |rows| course_card(rows,user) }}
+          out[:sections] << {id:'teacher-courses',title:'任课课程',cards:course_cards(groups,user)}
           offset=paginate(out,query,reviews.count,20)
-          out[:cards]=recent(reviews).offset(offset).limit(20).map { |r| review_card(r,user) }
+          out[:cards]=review_cards(recent(reviews).offset(offset).limit(20),user)
         else
           identities={}
           courses.each { |c| teachers(c).each { |t| key=[t[:name],t[:department]]; entry=(identities[key] ||= t.merge(count:0));entry[:count]+=1 } }
@@ -180,7 +204,7 @@ module DiscourseCourseReview
         scope=scope.where(department:query['college']) if query['college'].present?
         out[:filters]=Catalog.filters(query,mentor:true)
         offset=paginate(out,query,scope.count,40)
-        out[:cards]=Catalog.mentor_order(scope,q).offset(offset).limit(40).map { |m| mentor_card(m) }
+        out[:cards]=mentor_cards(Catalog.mentor_order(scope,q).offset(offset).limit(40))
       when 'course','mentor'
         kind=out[:view]=='course' ? 'Course' : 'Mentor'
         item=(kind=='Course' ? Course : Mentor).find(Shared.id(query['id']))
@@ -196,7 +220,7 @@ module DiscourseCourseReview
           out[:sections] << {id:'mentor-information',title:'导师信息',cards:[mentor_detail(item)]}
         end
         offset=paginate(out,query,reviews.count,20)
-        out[:cards]=recent(reviews).offset(offset).limit(20).map { |r| review_card(r,user) }
+        out[:cards]=review_cards(recent(reviews).offset(offset).limit(20),user)
         out[:forms]=[review_form(user,kind,item)] unless out[:readonly]
       when 'review'
         review=Review.find(Shared.id(query['id']))
@@ -207,7 +231,7 @@ module DiscourseCourseReview
         if review.status=='visible'
           comments=Comment.where(target_kind:'Review',target_id:review.id,status:'visible').order(:created_at,:id)
           offset=paginate(out,query,comments.count,50)
-          out[:sections] << {id:'comments',title:'讨论',cards:comments.offset(offset).limit(50).map { |c| comment_card(c,user) }}
+          out[:sections] << {id:'comments',title:'讨论',cards:comment_cards(comments.offset(offset).limit(50),user)}
         end
       when 'mine'
         part=%w[reviews comments bookmarks].include?(query['part']) ? query['part'] : 'reviews'
@@ -223,7 +247,7 @@ module DiscourseCourseReview
           scope=Comment.where(user_id:user.id).where.not(status:'deleted')
           scope=scope.where('body ILIKE ?',"%#{ActiveRecord::Base.sanitize_sql_like(q)}%") if q.present?
           offset=paginate(out,query,scope.count,30)
-          out[:cards]=recent(scope).offset(offset).limit(30).map { |c| comment_card(c,user,personal:true) }
+          out[:cards]=comment_cards(recent(scope).offset(offset).limit(30),user,personal:true)
         else
           scope=Bookmark.where(user_id:user.id)
           scope=scope.where('group_key ILIKE ?',"%#{ActiveRecord::Base.sanitize_sql_like(q)}%") if q.present?
@@ -268,16 +292,22 @@ module DiscourseCourseReview
       external << {label:'发邮件',url:"mailto:#{email}"} if email.match?(/\A[^@\s<>]+@[^@\s<>]+\z/)
       Ui.card('detail',item.name,body,type:'detail',subtitle:item.source_key,details:details.reject { |d| d[:value].blank? },external_links:external)
     end
-    def self.comment_card(c,user,personal:false)
-      parent=c.parent_id && Comment.find_by(id:c.parent_id,status:'visible')
-      card=Ui.card("comment-#{c.id}",c.anonymous ? '匿名回复' : Shared.user_name(c.user_id),c.body,type:'comment',author_title:true,forum_user:c.anonymous ? nil : Shared.forum_user(c.user_id),created_at:c.created_at.iso8601,
-        subtitle:parent ? "回复 #{parent.anonymous ? '匿名' : Shared.user_name(parent.user_id)}：#{parent.body.truncate(80)}" : nil)
+    def self.comment_cards(rows,user,**options)
+      rows=rows.to_a;batch=CommentBatch.new(rows,user)
+      rows.map { |row| comment_card(row,user,batch:batch,**options) }
+    end
+    def self.comment_card(c,user,personal:false,batch:nil)
+      parent=batch ? batch.parent(c) : c.parent_id && Comment.find_by(id:c.parent_id,status:'visible')
+      author=batch ? batch.author(c) : c.anonymous ? nil : User.find_by(id:c.user_id)
+      parent_name=parent && (parent.anonymous ? '匿名' : (batch ? batch.author(parent)&.username || '已注销用户' : Shared.user_name(parent.user_id)))
+      card=Ui.card("comment-#{c.id}",c.anonymous ? '匿名回复' : author&.username || '已注销用户',c.body,type:'comment',author_title:true,forum_user:author && Shared.forum_user(author),created_at:c.created_at.iso8601,
+        subtitle:parent ? "回复 #{parent_name}：#{parent.body.truncate(80)}" : nil)
       if personal
         card[:status]=STATUS[c.status];card[:hidden_reason]=c.hidden_reason
         card[:links]=[Ui.link('查看讨论',{'view'=>'review','id'=>c.target_id})]
         card[:actions]=[Ui.action('删除评论','delete_own',{'kind'=>'Comment','id'=>c.id}).merge(confirm:'确定删除这条评论？')]
       elsif c.status=='visible'
-        card.merge!(Shared.interaction_ui(c,user).slice(:actions,:forms,:metrics))
+        card.merge!(Shared.interaction_ui(c,user,reaction:batch&.reactions(c)).slice(:actions,:forms,:metrics))
         fields=[Ui.field('body','回复内容（至少 2 字）',nil,type:'textarea',required:true).merge(minlength:2,maxlength:500),Ui.field('anonymous','匿名回复',false,type:'checkbox')]
         card[:forms].unshift(Ui.form('回复这条评论','comment',fields,{'kind'=>'Review','id'=>c.target_id,'parent_id'=>c.id},button:'发布回复'))
       end

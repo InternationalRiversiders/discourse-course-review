@@ -42,7 +42,8 @@ module DiscourseCourseReview
       ActiveRecord::Base.connection.execute("SELECT pg_advisory_xact_lock(#{number})")
     end
     def self.command(user, operation, data, key)
-      Access.check!(user)
+      Access.check!(user, admin: %w[moderate resolve_report course mentor].include?(operation))
+      raise Error, "当前为只读预览，暂不接受修改" if SiteSetting.courses_read_only
       raise Error, "请求编号缺失" unless key.to_s.match?(/\A[\w-]{8,100}\z/)
       fingerprint = Digest::SHA256.hexdigest([operation, data.to_h.deep_sort.to_json].join(":")) if data.respond_to?(:deep_sort)
       fingerprint ||= Digest::SHA256.hexdigest([operation, canonical(data)].to_json)
@@ -73,20 +74,7 @@ module DiscourseCourseReview
       return unless user_id && User.exists?(user_id)
       Event.create_or_find_by!(key: key) { |e| e.user_id = user_id; e.text = text; e.path = path }
     end
-    def self.deliver
-      return unless SiteSetting.courses_enabled && !SiteSetting.courses_read_only
-      Event.where(notification_id: nil).order(:id).limit(100).each do |event|
-        event.with_lock do
-          next if event.notification_id
-          next unless User.exists?(event.user_id)
-          n = Notification.create!(user_id: event.user_id, notification_type: Notification.types[:custom], skip_send_email: true,
-            data: { river_app: "courses", river_text: event.text, river_path: event.path, river_icon: "graduation-cap", message: "courses", display_username: "", topic_title: event.text }.to_json)
-          event.update!(notification_id: n.id)
-        end
-      rescue => e
-        Rails.logger.warn("courses notification #{event.id}: #{e.class}")
-      end
-    end
+    def self.deliver = Notifications.deliver
     # Public forum fields only; callers enforce each feature's anonymity rules.
     def self.forum_user(id)
       user = id.is_a?(User) ? id : User.find_by(id: id)
@@ -179,7 +167,7 @@ module DiscourseCourseReview
       result = Shared.command(current_user, params.require(:operation).to_s, data, params.require(:request_id)) do
         Service.call(current_user, params[:operation].to_s, data)
       end
-      Shared.deliver
+      Notifications.enqueue
       render_json_dump(result)
     end
     def export
@@ -286,9 +274,9 @@ module DiscourseCourseReview
       else nil
       end
     end
-    def self.interaction_ui(item,user,comments: false,anonymous: false,images: false)
+    def self.interaction_ui(item,user,comments: false,anonymous: false,images: false,reaction:nil)
       data={'kind'=>item.class.name.demodulize,'id'=>item.id}
-      reaction=reactions(item,user)
+      reaction ||= reactions(item,user)
       actions=[];forms=[]
       if Access.member?(user)
         actions=[Ui.action("赞 #{reaction[:likes]}",'react',data.merge('value'=>reaction[:reaction]==1 ? 0 : 1)),Ui.action("踩 #{reaction[:dislikes]}",'react',data.merge('value'=>reaction[:reaction]==-1 ? 0 : -1))]

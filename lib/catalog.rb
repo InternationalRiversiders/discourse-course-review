@@ -88,6 +88,26 @@ module DiscourseCourseReview
       groups=listing(course_scope(query)).order(term: :desc,class_no: :asc).to_a.group_by(&:group_key).values
       chinese_order(groups) { |rows| rows.first.title }.each_with_index.sort_by { |rows,index| [-rows.map { |r| score(r,query['q']) }.max,index] }.map(&:first)
     end
+    # Default browsing groups and paginates in PostgreSQL, materializing only
+    # the teaching classes needed for this page. Fuzzy search keeps its ranking.
+    def self.page(query,size)
+      if query['q'].present?
+        groups=groups(query)
+        page=[[query['page'].to_i,1].max,[(groups.size.to_f/size).ceil,1].max].min
+        return [groups.slice((page-1)*size,size).to_a,groups.size,groups.sum(&:size)]
+      end
+      scope=course_scope(query)
+      total=scope.distinct.count(:group_key)
+      offerings=scope.count
+      page=[[query['page'].to_i,1].max,[(total.to_f/size).ceil,1].max].min
+      collation=Course.connection.select_value("SELECT collname FROM pg_collation WHERE collname='zh-x-icu'")
+      title_order=collation ? 'title COLLATE "zh-x-icu"' : 'title'
+      representatives=scope.select('DISTINCT ON (group_key) group_key,title,term,class_no,id').order(:group_key,term: :desc,class_no: :asc,id: :asc)
+      sql="SELECT group_key FROM (#{representatives.to_sql}) grouped ORDER BY #{title_order},term DESC,class_no,id LIMIT #{Integer(size)} OFFSET #{(page-1)*size}"
+      keys=Course.connection.select_values(sql)
+      rows=listing(scope.where(group_key:keys)).order(term: :desc,class_no: :asc,id: :asc).to_a.group_by(&:group_key)
+      [keys.map { |key| rows.fetch(key) },total,offerings]
+    end
     def self.filter(name,label,value,values)
       Ui.field(name,label,value.to_s,type:'select',options:[['','全部']]+values.compact.reject(&:blank?).uniq.map { |s| [s,s] })
     end

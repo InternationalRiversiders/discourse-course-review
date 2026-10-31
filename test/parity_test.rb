@@ -242,3 +242,32 @@ class CourseParityTest < Minitest::Test
     assert_raises(A::Error) { command(@bob,'comment',{kind:'Review',id:r.id,body:'不同的内容不能复用编号'},key:key) }
   end
 end
+
+class CourseParityTest
+  def test_database_group_pagination_matches_existing_catalog_order
+    85.times do |i|
+      A::Course.create!(class_no:"PAGE.#{i}",code:"PAGE#{i/2}",title:['阿语','数据结构','并行计算','英语'][i%4],teachers:'王老师',term:"202#{i%7}-202#{i%7+1}-1",campus:i.even? ? '清水河校区' : '沙河校区')
+    end
+    [{},{'campus'=>'清水河校区'},{'q'=>'数结'}].each do |filter|
+      original=A::Catalog.groups(filter)
+      [1,2,99].each do |page|
+        groups,total,offerings=A::Catalog.page(filter.merge('page'=>page),40)
+        offset=([page,[(original.size/40.0).ceil,1].max].min-1)*40
+        assert_equal original.slice(offset,40).to_a.map { |g| g.map(&:id) },groups.map { |g| g.map(&:id) }
+        assert_equal original.size,total
+        assert_equal original.sum(&:size),offerings
+      end
+    end
+  end
+  def test_batch_review_cards_preserve_identity_reactions_and_payload
+    first=review(anonymous:true);second=review(@bob,@other,anonymous:false)
+    A::Reaction.create!(target_kind:'Review',target_id:first.id,user_id:@bob.id,value:1)
+    A::Reaction.create!(target_kind:'Review',target_id:second.id,user_id:@alice.id,value:-1)
+    A::Comment.create!(target_kind:'Review',target_id:first.id,user_id:@alice.id,body:'匿名评论',anonymous:true)
+    rows=[first,second]
+    baseline=rows.map { |row| A::Service.review_card(row,@alice) }
+    assert_equal baseline,A::Service.review_cards(rows,@alice)
+    assert_nil baseline.first[:forum_user]
+    assert_equal @bob.username,baseline.last[:forum_user][:username]
+  end
+end
